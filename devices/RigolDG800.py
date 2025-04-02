@@ -21,7 +21,7 @@ class RigolDG800():
         
         self.device = rm.open_resource(adress)
         
-        self.ARB_MAX_SEND = 5000
+        self.set_options = ['freq1', 'freq2', 'ampl1', 'ampl2', 'offset1', 'offset2', 'phas1', 'phas2', 'dc1', 'outp1', 'outp2']
         
     def apply_settings1(self, value: list = ['SIN', 1000, 5, 0, 0]):
         """Set the function shape of the output
@@ -42,7 +42,7 @@ class RigolDG800():
         _offset = value[3]
         _phase = value[4]
         
-        self.device.write(f':SOUR1:APPL:{_type} {_freq}{_ampl}{_offset}{_phase}')
+        self.device.write(f':SOUR1:APPL:{_type} {_freq},{_ampl},{_offset},{_phase}')
     
     def apply_settings2(self, value: list = ['SIN', 1000, 5, 0, 0]):
         """Set the function shape of the output
@@ -63,7 +63,7 @@ class RigolDG800():
         _offset = value[3]
         _phase = value[4]
         
-        self.device.write(f':SOUR2:APPL:{_type} {_freq}{_ampl}{_offset}{_phase}')
+        self.device.write(f':SOUR2:APPL:{_type} {_freq},{_ampl},{_offset},{_phase}')
        
     def settings1(self) -> list:
         """
@@ -147,6 +147,24 @@ class RigolDG800():
     
     def phas2(self):
         ans = self.settings2()[4]
+        return ans
+    
+    def dc1(self):
+        settings = self.settings1()
+        _type = settings[0]
+        if not _type == 'PULS':
+            ans = 50
+        else:
+            ans = get(self.device, ':SOURce1:FUNCtion:PULSe:DCYCle?')
+        return ans
+    
+    def dc2(self):
+        settings = self.settings2()
+        _type = settings[0]
+        if not _type == 'PULS':
+            ans = 50
+        else:
+            ans = get(self.device, ':SOURce2:FUNCtion:PULSe:DCYCle?')
         return ans
     
     def set_type1(self, value):
@@ -259,6 +277,30 @@ class RigolDG800():
             
         self.apply_settings2(settings)
         
+    def set_dc1(self, value):
+        
+        settings = self.settings1()
+        try:
+            value = float(value)
+        except ValueError:
+            value = 0
+        settings[0] = 'PULS'
+        
+        self.apply_settings1(settings)
+        self.device.write(f':SOURce1:FUNCtion:PULSe:DCYCle {value}')
+        
+    def set_dc2(self, value):
+        
+        settings = self.settings2()
+        try:
+            value = float(value)
+        except ValueError:
+            value = 0
+        settings[0] = 'PULS'
+        
+        self.apply_settings2(settings)
+        self.device.write(f':SOURce2:FUNCtion:PULSe:DCYCle {value}')
+        
     def set_outp1(self, value: int = 0):
         """
 
@@ -289,16 +331,10 @@ class RigolDG800():
     
     def set_custom_waveform1(self, waveform: list = [0, 1, 2, 3, 4, 5, 6, 7]):
         
-        voltages = np.array(waveform)
+        voltages = np.array(waveform, dtype = float)
 
         # get length and point spacing
         npts = len(voltages)
-        
-        f = self.freq1()
-        
-        period = 1/f
-        
-        dt = npts/period
 
         # center and normalize voltages
         offset = np.mean(voltages)
@@ -312,7 +348,7 @@ class RigolDG800():
 
         # set amp values to counteract normalization
         self.set_offset1(offset)
-        self.set_amplitude1(vpp)
+        self.set_ampl1(vpp)
 
         # make sure data is sent in small enough groups
         npartitions = int(np.ceil(npts / self.ARB_MAX_SEND))
@@ -323,31 +359,66 @@ class RigolDG800():
 
             # get data to send
             volts = volts_send[i]
-            npts = len(volts)
+            v = ''
+            for _v in volts:
+                v+=f'{_v},'
+            volts = v[:-1]
 
-            # convert voltages to bytes
-            volts = volts * 8191.5 + 8191.5
-            volts = volts.astype('<H')
-            volts = volts.tobytes()
-
-            # make header line
-            nchar = len(str(npts*2))
             if i+1 < npartitions:
                 flag = 'CON'
             else:
                 flag = 'END'
 
-            header = f'SOUR1:DATA:DAC16 VOLATILE,{flag},#{nchar}{npts*2}'
+            header = f'SOUR1:DATA:DAC16 VOLT,{flag},'
 
             # write voltages to out
-            self.device.write_raw(bytes(header, 'ascii') + volts)
-        
-        #self.device.write(f':SOURce1:TRACe:DATA:DAC16 CODE,END,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300')
+            self.device.write(f'{header}{volts}')
     
-    def set_custom_waveform2(self, waveform, memory_num=5, verify=True):
+    def set_custom_waveform2(self, waveform: str = '0,1'):
         
-        self.device.write(f':SOUR2:TRAC:DATA:DAC16 VOLT,HEAD,{waveform}')
+        voltages = np.array(waveform, dtype = float)
 
+        # get length and point spacing
+        npts = len(voltages)
+
+        # center and normalize voltages
+        offset = np.mean(voltages)
+        voltages -= offset
+        maxv = max(voltages)
+        minv = min(voltages)
+
+        norm = max(abs(maxv), abs(minv))
+        vpp = abs(maxv-minv)
+        voltages = voltages / norm
+
+        # set amp values to counteract normalization
+        self.set_offset1(offset)
+        self.set_ampl1(vpp)
+
+        # make sure data is sent in small enough groups
+        npartitions = int(np.ceil(npts / self.ARB_MAX_SEND))
+        volts_send = np.array_split(voltages, npartitions)
+
+        # send data in groups
+        for i in range(npartitions):
+
+            # get data to send
+            volts = volts_send[i]
+            v = ''
+            for _v in volts:
+                v+=f'{_v},'
+            volts = v[:-1]
+
+            if i+1 < npartitions:
+                flag = 'CON'
+            else:
+                flag = 'END'
+
+            header = f'SOUR2:DATA:DAC16 VOLT,{flag},'
+
+            # write voltages to out
+            self.device.write(f'{header}{volts}')
+            
     def outp1(self):
         
         ans = get(self.device, f':OUTP1:STATE?')
@@ -360,8 +431,20 @@ class RigolDG800():
     
 def main():
     device = RigolDG800()
-    device.set_custom_waveform1([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    device.apply_settings1(['ARB',100.0,1.0,2.0,3.0])
+    try:
+        device.set_type1('PULS')
+        device.set_freq1(1000000)
+        device.set_ampl1(3)
+        device.set_phas1(0)
+        device.set_dc1(1)
+        device.set_type2('PULS')
+        device.set_freq2(1000000)
+        device.set_ampl2(3)
+        device.set_phas2(350)
+        device.set_dc2(1)
+    except Exception as ex:
+        print(f'Exception happened: {ex}')
+        device.device.close()
 
 if __name__ == '__main__':
     main()
