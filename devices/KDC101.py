@@ -19,8 +19,11 @@ class KDC101():
         # ensure that the Kinesis folder is available on PATH
         os.environ['PATH'] += os.pathsep + 'C:/Program Files/Thorlabs/Kinesis'
 
-        ser = '27258105'
-
+        if adress == 'COM10':
+            ser = '27258071'
+        elif adress == 'COM11':
+            ser = '27258084'
+            
         record = EquipmentRecord(
             manufacturer='Thorlabs',
             model='KDC101',
@@ -42,7 +45,7 @@ class KDC101():
         self.set_options = ['position']
         self.get_options = ['position']
         
-        self.error = 1.0072619075
+        self.error = 1#1.0072619075
     
     def restart(self):
         self.close()
@@ -85,8 +88,8 @@ class KDC101():
 
 def main():
     try:
-        device = KDC101()
-        device.set_position(8)
+        device = KDC101('COM10')
+        device.set_position(57)
         print(device.position())
     except Exception as ex:
         print(f'Exception hapened in executing KCube: {ex}')
