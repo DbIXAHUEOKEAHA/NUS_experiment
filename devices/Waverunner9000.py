@@ -25,6 +25,11 @@ class Waverunner9000():
         self.measured_Time = [None, None, None, None]
         self.measured_Amplitude = [None, None, None, None]
         
+        self._probability1 = np.nan
+        self._probability2 = np.nan
+        self._probability3 = np.nan
+        self._probability4 = np.nan
+        
         for i in [1,2,3,4]:
             self.__dict__[f'Time{i}'] = lambda i = i: self.Time(n = i)
             self.__dict__[f'Amplitude{i}'] = lambda i = i: self.Amplitude(n = i)
@@ -32,14 +37,14 @@ class Waverunner9000():
             self.__dict__[f'_ampl{i}'] = lambda i = i: self._ampl(n = i)
             self.__dict__[f'window{i}'] = lambda i = i: self.window(channel = i)
             self.__dict__[f'probability{i}'] = lambda i = i: self.probability(channel = i)
-            self.__dict__[f'correlator{i}'] = lambda i = i: self.correlator(channel = i)
+            #self.__dict__[f'correlator{i}'] = lambda i = i: self.correlator(channel = i)
             self.get_options.append(f'Time{i}')
             self.get_options.append(f'Amplitude{i}')
             self.get_options.append(f'window{i}')
             self.get_options.append(f'probability{i}')
-            self.get_options.append(f'correlator{i}')
+            #self.get_options.append(f'correlator{i}')
             
-            self.set_options.append(f'Correlator{i}')
+            #self.set_options.append(f'Correlator{i}')
             
             self.__dict__[f'correlator_value{i}'] = 0
             self.__dict__[f'stat{i}'] = np.array([0])
@@ -60,14 +65,14 @@ class Waverunner9000():
                             '50S': 50,'100S': 100}
         
         self.sparcing = 200
-        self._npoints = 500
+        self._npoints = 100000
         self.first_point = 0
         self.segment_number = 0
         self.set_config()
         
-        self.trashold = 0.01
-        self.offset = 0
-        self.freq = 100000
+        self.trashold = 0.010
+        self.offset = 0.005
+        self.freq = 500000
         self.window_div = 50e-3 / 10
 
     def Waveform(self):
@@ -283,8 +288,8 @@ class Waverunner9000():
         
         return stat
     
-    def window(self, channel: int = 1):
-        wind = self.read_window(channel)[:100]
+    def window(self, channel: int = 1, n = 100):
+        wind = self.read_window(channel)[:n]
         answer = ''
         for i in wind:
             answer += f'{i},'
@@ -328,8 +333,9 @@ class Waverunner9000():
         #return self.correlation(self.__dict__[f'stat{channel}'], self.__dict__[f'correlator_value{channel}'])
     
     def probability(self, channel: int = 1):
-        return self.correlation(self.__dict__[f'stat{channel}'], 0)
-    
+        #return self.correlation(self.__dict__[f'stat{channel}'], 0)
+        return self.__dict__[f'_probability{channel}']    
+        
     def correlation_n(self, channel: int = 1, n: int = 100):
         """
 
@@ -354,39 +360,40 @@ class Waverunner9000():
             ans += f'{i},'
         return ans[:-1]
     
+    def read_auto_correlator(self, channel: int = 1, iterat = 1, sh = 100):
+        stat = self.read_window()
+        n = np.arange(0, sh+1, 1)
+        correlation = np.zeros_like(n, dtype = float)
+        cor_n = self.correlation_n()
+        print(cor_n)
+        for i in range(iterat):
+            cor = []
+            stat = self.read_window()
+            print(stat[:50])
+            for i in n:
+                cor.append(self.correlation(stat, i))
+            cor = np.array(cor, dtype = float)
+            correlation += cor
+        
+        correlation /= iterat
+        
+        m = correlation[0]
+        print(f'Mean is {m}')
+        m = np.ones_like(n) * m
+        plt.plot(n, correlation, 'o-', label = 'Data', color = 'darkblue')
+        plt.plot(n, m**2, '--', color = 'crimson', label = 'Uncorrelated', alpha = 0.5)
+        plt.legend()
+        plt.xlabel('n-th neighbor')
+        plt.ylabel('Correlation')
+        plt.show()
+    
     def close(self):
         self.device.resource.close()
     
 def main():
     device = Waverunner9000()
     
-    stat = device.read_window()
-    iterat = 1
-    sh = 100
-    n = np.arange(0, sh+1, 1)
-    correlation = np.zeros_like(n, dtype = float)
-    cor_n = device.correlation_n()
-    print(cor_n)
-    for i in range(iterat):
-        cor = []
-        stat = device.read_window()
-        print(stat[:50])
-        for i in n:
-            cor.append(device.correlation(stat, i))
-        cor = np.array(cor, dtype = float)
-        correlation += cor
-    
-    correlation /= iterat
-    
-    m = correlation[0]
-    print(f'Mean is {m}')
-    m = np.ones_like(n) * m
-    plt.plot(n, correlation, 'o-', label = 'Data', color = 'darkblue')
-    plt.plot(n, m**2, '--', color = 'crimson', label = 'Uncorrelated', alpha = 0.5)
-    plt.legend()
-    plt.xlabel('n-th neighbor')
-    plt.ylabel('Correlation')
-    plt.show()
+    device.read_auto_correlator(iterat = 10)
     
     device.close()
 
