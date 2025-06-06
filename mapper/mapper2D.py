@@ -24,7 +24,7 @@ class mapper2D():
         self.walks = walks
         self.interpolated = interpolated
         self.uniform = uniform
-        self.grid = np.linspace(_from, _to, nsteps)
+        self.grid = np.linspace(_from, _to, nsteps + 1)
         self.cur_walk = 0
         self.index_filename = index_filename
         for parameter in self.parameters_to_read:
@@ -178,6 +178,12 @@ class mapper2D():
         
         if self.uniform:
             for ind in range(self.cur_walk):
+                try:
+                    float(parameter[0])
+                except ValueError:
+                    x = self.__dict__[f'slave{ind}']
+                    parameter = np.empty(x.shape[0])
+                    parameter[:] = np.nan
                 if ind != self.cur_walk:
                     x = self.__dict__[f'slave{ind}']
                     y = parameter[shape:shape + x.shape[0]]
@@ -191,6 +197,12 @@ class mapper2D():
                     res.append(func(self.grid[::round(-2*(ind % 2 - 0.5))][round(ind % 2):]))
         else:
             for ind, sub in enumerate(self.reference_slave):
+                try:
+                    float(parameter[0])
+                except ValueError:
+                    x = self.__dict__[f'slave{ind}']
+                    parameter = np.empty(x.shape[0])
+                    parameter[:] = np.nan
                 if ind != self.cur_walk:
                     x = self.__dict__[f'slave{ind}']
                     y = parameter[shape:shape + x.shape[0]]

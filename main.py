@@ -27,7 +27,8 @@ from datetime import datetime
 import pandas as pd
 import matplotlib
 import numpy as np
-from scipy import optimize
+from scipy import optimize, signal
+from scipy.signal import butter, lfilter, freqz
 import numpy.ma as ma
 import glob
 import serial
@@ -63,15 +64,15 @@ def serial_ports():
             pass
     return result
 
-if not exists(os.path.join(core_dir, 'resources')):
-    os.mkdir(os.path.join(core_dir, 'resources'))
+if not exists(os.path.join(core_dir, 'devices')):
+    os.mkdir(os.path.join(core_dir, 'devices'))
       
-sys.path.insert(0, os.path.join(core_dir, 'resources'))
+sys.path.insert(0, os.path.join(core_dir, 'devices'))
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
 
-device_classes = os.listdir(os.path.join(core_dir, 'resources'))
+device_classes = os.listdir(os.path.join(core_dir, 'devices'))
 _device_classes = []
 for i in device_classes:
     if i[-3:] == '.py':
@@ -116,6 +117,7 @@ parameter_to_sweep1 = ''
 parameter_to_sweep2 = ''
 parameter_to_sweep3 = ''
 parameters_to_read_dict = {}
+step_counter = 0
 from_sweep1 = 0
 to_sweep1 = 1
 ratio_sweep1 = 1
@@ -1890,7 +1892,7 @@ class Sweeper1d(tk.Frame):
         self.devices.set(value=parameters_to_read)
         self.lstbox_to_read = tk.Listbox(self, listvariable = self.devices,
                                          selectmode='multiple', exportselection=False,
-                                         width=40, height=len(parameters_to_read) * 1)
+                                         width=50, height=len(parameters_to_read) * 1)
         
         self.dict_lstbox = {}
         
@@ -11478,10 +11480,12 @@ class Graph():
         self.axes_settings(i, pad, tick_size, label_size, x_pad, y_pad, title_size, title_pad)
 
     def update_idletasks(self):
-        self.tw.update_idletasks()
+        pass
+        #self.tw.update_idletasks()
         
     def update(self):
-        self.tw.update()
+        pass
+        #self.tw.update()
 
     def pause_clicked(self):
         if self.button_pause['text'] == '⏸️':

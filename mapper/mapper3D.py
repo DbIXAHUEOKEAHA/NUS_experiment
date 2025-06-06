@@ -30,7 +30,7 @@ class mapper3D():
         self.iteration = 0
         self.cur_walk = 0
         self.index_filename = index_filename
-        self.grid = np.linspace(_from, _to, nsteps)
+        self.grid = np.linspace(_from, _to, nsteps + 1)
         self.maps_to_save = []
         for parameter in self.parameters_to_read:
             self.__dict__[parameter] = np.array([])

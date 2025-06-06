@@ -70,11 +70,11 @@ def condition_2_func(condition: str, slave0: float):
     f1 = f'{lhs} - ({rhs})'
     
     if not 'z' in condition:
-        f1 = f1.replace('x', f'{slave0}')
-        func = lambda y: eval(f1)
-    else:
         f1 = f1.replace('y', f'{slave0}')
-        func = lambda z: eval(f1)
+        func = lambda x: eval(f1)
+    else:
+        f1 = f1.replace('z', f'{slave0}')
+        func = lambda y: eval(f1)
     
     return func
 

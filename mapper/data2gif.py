@@ -8,6 +8,8 @@ from multiprocessing.pool import ThreadPool
 
 def create_gif(filename, idx, parameters_to_read):
     
+    return
+    
     path = os.path.normpath(filename).split(os.path.sep)
     name = path[-1]
     
