@@ -9759,6 +9759,7 @@ class Sweeper_write(threading.Thread):
             
             if len(manual_sweep_flags) == 2:
                 globals()['dataframe'] = [np.round(i, 2) for i in [time.perf_counter() - zero_time]]
+                self.mapper2D.append_slave(value = np.nan)
             else:
                 globals()['dataframe'] = [*globals()['dataframe_after']]
                 if self.sweepable3 == True:
@@ -10098,11 +10099,11 @@ class Sweeper_write(threading.Thread):
                         if i != walks:
                             self.mapper2D.walks = 1
                             self.mapper2D.slave_done_walking()
+                            self.mapper2D.append_master(value = self.value1)
                             self.mapper2D.concatenate_all()
                             self.mapper2D.clear_slave()
                             self.mapper2D.clear_sub_slaves()
                             self.mapper2D.clear_parameters()
-                            self.mapper2D.append_master(value = self.value1)
                             step(axis = 1)
                             globals()['Sweeper_object'].cur_walk1 += 1
                             
