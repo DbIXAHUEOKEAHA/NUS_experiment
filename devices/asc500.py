@@ -30,9 +30,9 @@ class asc500():
         self.set_freq_y(100)
         self.set_freq_z(100)
         
-        self.set_volt_x(35)
-        self.set_volt_y(35)
-        self.set_volt_z(40)
+        self.set_volt_x(40)
+        self.set_volt_y(40)
+        self.set_volt_z(45)
         
         self.sweepable = [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
         
@@ -513,7 +513,8 @@ class asc500():
         self.device.limits.setTemperature(value)
     
     def close(self):
-        self.device.base.stopServer()
+        #self.device.base.stopServer()
+        pass
 
 def main():
     #set_gnd_z(true)
