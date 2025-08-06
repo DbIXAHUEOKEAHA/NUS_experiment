@@ -1,1 +1,1 @@
-{"192.168.1.207:5000": "opticool", "GPIB0::1::INSTR": "sr830", "GPIB0::2::INSTR": "sr860", "GPIB0::3::INSTR": "sr860"}
+{}

@@ -50,11 +50,18 @@ class Vna(GenericInstrument):
         #self.display_screen()
         
         self.complex_number = [None, None]
+        self.complex_linmag = [None, None]
+        self.complex_linmag_peak = [None, None]
+        self.complex_peak = [None, None]
+        self.complex_dip = [None, None]
+        self.complex_average = [None, None]
         
-        self.get_options = ['start_freq', 'stop_freq', 'cent_freq', 'span_freq', 'sweep_time', 'num_points', 'bandwidth', 'power', 
-                            'freqs', 'trace_real', 'trace_im', 'trace_linmag', 'trace_logmag', 'trace_phase', 
+        self.cur_average = 1 #Default number of measurements to AVERAGE
+        
+        self.get_options = ['start_freq', 'stop_freq', 'cent_freq', 'span_freq', 'sweep_time', 'num_points', 'bandwidth', 'average', 'power', 
+                            'freqs', 'average_real', 'average_im', 'trace_real', 'trace_im', 'trace_linmag', 'trace_logmag', 'trace_phase', 
                             'real_peak_freq', 'real_dip_freq', 'im_peak_freq', 'im_dip_freq', 'linmag_peak_freq', 'max_linmag_freq']
-        self.set_options = ['start_freq', 'stop_freq', 'cent_freq', 'span_freq', 'num_points', 'bandwidth', 'power']
+        self.set_options = ['start_freq', 'stop_freq', 'cent_freq', 'span_freq', 'num_points', 'bandwidth', 'average', 'power']
 
     def _open(self, ip_address: str, socket:int):
         self.open_tcp(ip_address, socket)
@@ -71,6 +78,9 @@ class Vna(GenericInstrument):
     def autoscale(self):
         scpi = 'DISP:WIND:TRAC:Y:AUTO ONCE'
         self.write(scpi)
+
+    def array_to_string(self, array):
+        return ','.join(map(str, array))
 
     def print_info(self):
         _log = self.log
@@ -612,12 +622,13 @@ class Vna(GenericInstrument):
         return self.query(scpi)
     
     def average(self):
-        scpi = 'SENS:AVER?'
-        return self.query(scpi)
+        return self.cur_average
     
     def set_average(self, value):
-        scpi = f'AVER {value}'
-        self.write(scpi)
+        try:
+            self.cur_average = int(value)
+        except ValueError:
+            self.cur_average = 3
     
     def set_power(self, value):
         scpi = f'SOUR:POW {value}'
@@ -650,53 +661,69 @@ class Vna(GenericInstrument):
     def trac(self):
         data = myTrace(self, 'Trc1')
         complex_trace = data.measure_complex_data()
-        self.complex_number = (complex_trace.real, complex_trace.imag)
+        num = [complex_trace.real, complex_trace.imag]
+        self.complex_number = num
+        self.complex_linmag = num
+        self.complex_linmag_peak = num
+        self.complex_peak = num
+        self.complex_dip = num
+        
+    def average_trac(self):
+        """
+
+        Parameters
+        ----------
+        n : int
+            Average count.
+
+        Returns
+        -------
+        Complex trace after averaging
+
+        """
+        n = self.cur_average
+        num = [0, 0]
+        for i in range(n):
+            data = myTrace(self, 'Trc1')
+            complex_trace = data.measure_complex_data()
+            num = [num[0] + complex_trace.real, num[1] + complex_trace.imag]
+        num = [num[0] / n, num[1] / n]
+        self.complex_average = num
+    
+    def average_real(self):
+        if self.complex_average[0] is None:
+            self.average_trac()
+        answer = self.complex_average[0]
+        self.complex_average[0] = None
+        return self.array_to_string(answer)
+    
+    def average_im(self):
+        if self.complex_average[1] is None:
+            self.average_trac()
+        answer = self.complex_average[1]
+        self.complex_average[1] = None
+        return self.array_to_string(answer)
     
     def trace_real(self):
-        self.autoscale()
-        scpi = 'INIT1:IMM:ALL'
-        self.write(scpi)
-        t = self.sweep_time()
-        time.sleep(t)
-        scpi = 'CALC1:FORM REAL'
-        self.write(scpi)
-        scpi = 'CALC1:DATA? FDAT'
-        answer = self.query(scpi)
-        answer = answer.replace('\r', '')
-        answer = answer.replace('\n', '')
-        answer = answer.replace(' ', '')
-        return answer
+        if self.complex_number[0] is None:
+            self.trac()
+        answer = self.complex_number[0]
+        self.complex_number[0] = None
+        return self.array_to_string(answer)
     
     def trace_im(self):
-        self.autoscale()
-        scpi = 'INIT1:IMM:ALL'
-        self.write(scpi)
-        t = self.sweep_time()
-        time.sleep(t)
-        scpi = 'CALC1:FORM IMAG'
-        self.write(scpi)
-        scpi = 'CALC1:DATA? FDAT'
-        answer = self.query(scpi)
-        answer = answer.replace('\r', '')
-        answer = answer.replace('\n', '')
-        answer = answer.replace(' ', '')
-        return answer
+        if self.complex_number[1] is None:
+            self.trac()
+        answer = self.complex_number[1]
+        self.complex_number[1] = None
+        return self.array_to_string(answer)
     
     def trace_linmag(self):
-        self.autoscale()
-        scpi = 'INIT1:IMM:ALL'
-        self.write(scpi)
-        t = self.sweep_time()
-        time.sleep(t)
-        scpi1 = 'CALC1:FORM MLIN'
-        self.write(scpi1)
-        scpi1 = 'CALC1:DATA? FDAT'
-        answer1 = self.query(scpi1)
-        answer1 = answer1.replace('\r', '')
-        answer1 = answer1.replace('\n', '')
-        answer1 = answer1.replace(' ', '')
-        
-        return answer1
+        if self.complex_linmag[0] is None:
+            self.trac()
+        answer = np.sqrt(self.complex_linmag[0] ** 2 + self.complex_linmag[0] ** 2)
+        self.complex_linmag[0] = None
+        return self.array_to_string(answer)
     
     def trace_logmag(self):
         self.autoscale()
@@ -744,6 +771,10 @@ class Vna(GenericInstrument):
         scpi = f'BAND {value}'
         self.write(scpi)
         
+    def trig(self):
+        scpi = '*TRG'
+        self.write(scpi)
+        
     def freqs(self):
         start = self.start_freq()
         stop = self.stop_freq()
@@ -780,8 +811,6 @@ class Vna(GenericInstrument):
     def fit(self, x, y):
         
         from scipy.signal import find_peaks
-        
-        y = [float(i) for i in y]
         
         peaks_pos = find_peaks(y)[0]
         
@@ -839,29 +868,58 @@ class Vna(GenericInstrument):
     
     def max_linmag_freq(self):
         x = self.freqs().split(',')
-        y = self.trace_linmag().split(',')
-        idx = np.argmax(y)
+        
+        if self.complex_linmag_peak[0] is None:
+            self.trac()
+        answer = np.sqrt(self.complex_linmag[0] ** 2 + self.complex_linmag[0] ** 2)
+        self.complex_linmag_peak[0] = None
+        
+        idx = np.argmax(answer)
         return x[idx]
     
     def real_peak_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_real())[0]
+        
+        if self.complex_peak[0] is None:
+            self.trac()
+        answer = self.complex_peak[0]
+        self.complex_peak[0] = None
+        
+        return self.fit(f, answer)[0]
     
     def im_peak_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_im())[0]
+        
+        if self.complex_peak[1] is None:
+            self.trac()
+        answer = self.complex_peak[1]
+        self.complex_peak[1] = None
+        
+        return self.fit(f, answer)[0]
     
     def real_dip_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_real())[1]
+        
+        if self.complex_dip[0]is None:
+            self.trac()
+        answer = self.complex_dip[0]
+        self.complex_dip[0] = None
+        
+        return self.fit(f, answer)[1]
     
     def im_dip_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_im())[1]
+        
+        if self.complex_dip[1] is None:
+            self.trac()
+        answer = self.complex_dip[1]
+        self.complex_dip[1] = None
+        
+        return self.fit(f, answer)[1]
     
     def linmag_peak(self):
         f = self.freqs().split(',')
@@ -892,12 +950,9 @@ class Vna(GenericInstrument):
         return self.fit(f, self.trace_linmag().split(','))[0]
      
 def main():
-    vna = Vna('169.254.82.39:5025')
-    answer = vna.trace_linmag()
-    print(answer)
+    vna = Vna('169.254.169.168:5025')
     try:
-        answer = vna.trace_real()
-        print(answer)
+        print(vna.im_peak_freq())
     except Exception as ex:
         print(ex)
     finally:

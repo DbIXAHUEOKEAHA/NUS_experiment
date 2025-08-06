@@ -22,8 +22,8 @@ class asc500():
         self.device = ASC500(binPath, dllPath)
         self.device.base.startServer()
         
-        self.get_options = ['scanner_z', 'outp_active', 'gnd_x', 'gnd_y', 'gnd_z', 'volt_x', 'volt_y', 'volt_z', 'freq_x', 'freq_y', 'freq_z']
-        self.set_options = ['scanner_z', 'outp_active', 'gnd_x', 'gnd_y', 'gnd_z', 'step_up_x', 'step_up_y', 'step_up_z', 'step_down_x', 
+        self.get_options = ['scanner_x', 'scanner_y', 'scanner_z', 'outp_active', 'gnd_x', 'gnd_y', 'gnd_z', 'volt_x', 'volt_y', 'volt_z', 'freq_x', 'freq_y', 'freq_z']
+        self.set_options = ['scanner_x', 'scanner_y', 'scanner_z', 'scanner_XY_counter', 'outp_active', 'gnd_x', 'gnd_y', 'gnd_z', 'step_up_x', 'step_up_y', 'step_up_z', 'step_down_x', 
                             'step_down_y', 'step_down_z', 'volt_x', 'volt_y', 'volt_z', 'freq_x', 'freq_y', 'freq_z']
         
         self.set_freq_x(100)
@@ -45,7 +45,7 @@ class asc500():
         True = grounded
         False = ungrounded
         """
-        axis = 4
+        axis = 2
         mode = self.device.coarse.getCoarseAxisMode(axis)
         if mode == 1:
             ans = False
@@ -62,7 +62,7 @@ class asc500():
         True = grounded
         False = ungrounded
         """
-        axis = 5
+        axis = 3
         mode = self.device.coarse.getCoarseAxisMode(axis)
         if mode == 1:
             ans = False
@@ -79,7 +79,7 @@ class asc500():
         True = grounded
         False = ungrounded
         """
-        axis = 6
+        axis = 1
         mode = self.device.coarse.getCoarseAxisMode(axis)
         if mode == 1:
             ans = False
@@ -96,7 +96,7 @@ class asc500():
         -------
         None.
         """
-        axis = 4
+        axis = 2
         if value == 1 or value == False:
             set_mode = 1
         else:
@@ -112,7 +112,7 @@ class asc500():
         -------
         None.
         """
-        axis = 5
+        axis = 3
         if value == 1 or value == False:
             set_mode = 1
         else:
@@ -128,7 +128,7 @@ class asc500():
         -------
         None.
         """
-        axis = 6
+        axis = 1
         if value == 1 or value == False:
             set_mode = 1
         else:
@@ -185,7 +185,7 @@ class asc500():
         except ValueError:
             value = 1
         
-        axis = 4
+        axis = 2
         self.device.coarse.stepCoarseUp(axis, value)
         
     def set_step_down_x(self, value: int = 1):
@@ -202,7 +202,7 @@ class asc500():
         except ValueError:
             value = 1
         
-        axis = 4
+        axis = 2
         self.device.coarse.stepCoarseDown(axis, value)
         
     def set_step_up_y(self, value: int = 1):
@@ -219,7 +219,7 @@ class asc500():
         except ValueError:
             value = 1
         
-        axis = 5
+        axis = 3
         self.device.coarse.stepCoarseUp(axis, value)
         
     def set_step_down_y(self, value: int = 1):
@@ -236,7 +236,7 @@ class asc500():
         except ValueError:
             value = 1
         
-        axis = 5
+        axis = 3
         self.device.coarse.stepCoarseDown(axis, value)
         
     def set_step_up_z(self, value: int = 1):
@@ -253,8 +253,25 @@ class asc500():
         except ValueError:
             value = 1
         
-        axis = 6
+        axis = 1
         self.device.coarse.stepCoarseUp(axis, value)
+        
+    def set_step_down_z(self, value: int = 1):
+        """
+        Makes 'value' number of steps up along z-axis
+        
+        Returns
+        -------
+        None.
+        """
+        
+        try:
+            value = int(value)
+        except ValueError:
+            value = 1
+        
+        axis = 1
+        self.device.coarse.stepCoarseDown(axis, value)
         
     def scanner_z(self):
         """
@@ -263,6 +280,7 @@ class asc500():
         
         return self.device.zcontrol.getPositionZ()
     
+    '''
     def set_scanner_z(self, value):
         """
         Set the position of the zcontrol
@@ -275,6 +293,7 @@ class asc500():
             value = self.scanner_z()
         
         self.device.zcontrol.setPositionZ(value)
+    '''
         
     def scanner_x(self):
         """
@@ -290,6 +309,114 @@ class asc500():
         
         return self.device.scanner.getPositionsXYZRel()[1]
         
+    def set_scanner_up_x(self, value: float):
+        """
+        
+
+        Parameters
+        ----------
+        value : int or float; step up
+
+        Reads the position of zcontrol and sets a position + step
+
+        """
+        
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            value = float(value)
+            new_x = x + value*step
+        except ValueError:
+            print(f'Invalid step type: expected int or float, got {type(value)}')
+            new_x = x
+        
+        self.device.scanner.setPositionsXYZRel([new_x, y, z])
+        
+    def set_scanner_down_x(self, value: float):
+        """
+        
+
+        Parameters
+        ----------
+        value : int or float; step down
+
+        Reads the position of zcontrol and sets a position - step
+
+        """
+        
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            value = float(value)
+            new_x = x - value*step
+        except ValueError:
+            print(f'Invalid step type: expected int or float, got {type(value)}')
+            new_x = x
+        
+        self.device.scanner.setPositionsXYZRel([new_x, y, z])
+        
+    def set_scanner_up_y(self, value: float):
+        """
+        
+
+        Parameters
+        ----------
+        value : int or float; step up
+
+        Reads the position of zcontrol and sets a position + step
+
+        """
+        
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            value = float(value)
+            new_y = y + value*step
+        except ValueError:
+            print(f'Invalid step type: expected int or float, got {type(value)}')
+            new_y = y
+        
+        self.device.scanner.setPositionsXYZRel([x, new_y, z])
+        
+    def set_scanner_down_y(self, value: float):
+        """
+        
+
+        Parameters
+        ----------
+        value : int or float; step down
+
+        Reads the position of zcontrol and sets a position - step
+
+        """
+        
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            value = float(value)
+            new_y = y - value*step
+        except ValueError:
+            print(f'Invalid step type: expected int or float, got {type(value)}')
+            new_y = y
+        
+        self.device.scanner.setPositionsXYZRel([x, new_y, z])
+    
     def set_scanner_up_z(self, value: float):
         """
         
@@ -302,16 +429,20 @@ class asc500():
 
         """
         
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
         z = self.scanner_z()
         
         try:
             value = float(value)
-            new_z = z + value
+            new_z = z + value*step
         except ValueError:
             print(f'Invalid step type: expected int or float, got {type(value)}')
             new_z = z
         
-        self.device.zcontrol.setPositionZ(new_z)
+        self.device.scanner.setPositionsXYZRel([x, y, new_z])
         
     def set_scanner_down_z(self, value: float):
         """
@@ -325,33 +456,121 @@ class asc500():
 
         """
         
+        step = 500e-9 #500 nm step
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
         z = self.scanner_z()
         
         try:
             value = float(value)
-            new_z = z - value
+            new_z = z - value*step
         except ValueError:
             print(f'Invalid step type: expected int or float, got {type(value)}')
             new_z = z
         
-        self.device.zcontrol.setPositionZ(new_z)
+        self.device.scanner.setPositionsXYZRel([x, y, new_z])
         
-    def set_step_down_z(self, value: int = 1):
+    def set_scanner_x(self, value: float, speed = None):
         """
-        Makes 'value' number of steps down along z-axis 
         
-        Returns
-        -------
-        None.
+        Parameters:
+        -------------
+        value : float; target position for x scanner
         """
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
         
         try:
-            value = int(value)
+            if value > 100e-6:
+                value = x
         except ValueError:
-            value = 1
+            value = x
         
-        axis = 4
-        self.device.coarse.stepCoarseDown(axis, value)
+        self.device.scanner.setPositionsXYZRel([value, y, z])
+        
+    def set_scanner_y(self, value: float, speed = None):
+        """
+        
+        Parameters:
+        -------------
+        value : float; target position for y scanner
+        """
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            if value > 100e-6:
+                value = y
+        except ValueError:
+            value = y
+        
+        self.device.scanner.setPositionsXYZRel([x, value, z])
+        
+    def set_scanner_z(self, value: float, speed = None):
+        """
+        
+        Parameters:
+        -------------
+        value : float; target position for z scanner
+        """
+        
+        x = self.scanner_x()
+        y = self.scanner_y()
+        z = self.scanner_z()
+        
+        try:
+            if value > 100e-6:
+                value = z
+        except ValueError:
+            value = z
+        
+        self.device.scanner.setPositionsXYZRel([x, y, value])
+        
+    def set_scanner_XY_counter(self, value = int, speed = None):
+        
+        StartX = 6.9e-6
+        EndX = 9.9e-6
+        DeltaX = 500e-9
+        StartY = 7.4e-6
+        EndY = 10.4e-6
+        DeltaY = 500e-9
+        
+        snakemode = True
+        
+        X = np.linspace(StartX, EndX, int(np.abs(EndX - StartX)/DeltaX)+1)
+        Y = np.linspace(StartY, EndX, int(np.abs(EndY - StartY)/DeltaY)+1)
+        
+        X, Y = np.meshgrid(X, Y)
+        
+        def reverse_odd_rows(array):
+            for i in range(len(array)):
+                if i % 2 == 1:  # Check if the row index is even
+                    array[i] = array[i][::-1]  # Reverse the row
+            return array
+        
+        if snakemode:
+            X = reverse_odd_rows(X)
+        
+        i = int(value)
+        
+        try:
+            X = X.flatten()[i]
+            Y = Y.flatten()[i]
+        except IndexError:
+            if i > 1:
+                X = X.flatten()[-1]
+                Y = Y.flatten()[-1]
+            else:
+                X = X.flatten()[0]
+                Y = Y.flatten()[0]
+        
+        self.set_scanner_x(X)
+        self.set_scanner_y(Y)
         
     def volt_x(self):
         """
@@ -519,7 +738,18 @@ class asc500():
 def main():
     #set_gnd_z(true)
     device = asc500()
-    device.set_gnd_x(2)
+    #device.set_outp_active(1)
+    #device.set_scanner_x(1e-6)
+    #device.set_scanner_y(1e-6)
+    #time.sleep(2)
+    #x = device.scanner_x()
+    #y = device.scanner_y()
+    
+    #device.set_scanner_XY_counter(0)
+    
+    #print(f'X = {x}, Y = {y}')
+    
+    #device.set_gnd_y(1)
     device.close()
     #device.set_gnd_z(1)
     #device.base.stopServer()
