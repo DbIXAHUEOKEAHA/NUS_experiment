@@ -25,11 +25,11 @@ else:
     slider = list_of_devices[list_of_devices_addresses.index('COM6')]
     
 '''
-asc500 = list_of_devices[list_of_devices_addresses.index('COM3')]
+piezo = list_of_devices[list_of_devices_addresses.index('192.168.1.4')]
 #keithley = list_of_devices[list_of_devices_addresses.index('GPIB0::6::INSTR')]
 vna = list_of_devices[list_of_devices_addresses.index('169.254.82.39:5025')]
-slider = list_of_devices[list_of_devices_addresses.index('COM6')]
-attodry = list_of_devices[list_of_devices_addresses.index('COM4')]
+slider = list_of_devices[list_of_devices_addresses.index('COM4')]
+attodry = list_of_devices[list_of_devices_addresses.index('192.168.1.4')]
     
 def get_V():
     #V = getattr(keithley, 'Volt_DC')() #Using DC
@@ -41,28 +41,29 @@ if 'count_step_T' in list(globals().keys()):
 else:
     globals()['count_step_T'] = 0
 
-for j in ['z', 'x', 'y']: #ungrounding
-    getattr(asc500, f'set_gnd_{j}')(1)    
+for j in range(3): #ungrounding
+    getattr(piezo, f'set_gnd_{j+1}')(False)  
+    getattr(piezo, f'set_outp_active_{j+1}')(True)
    
-span = float(getattr(vna, 'span_freq')())
+#span = float(getattr(vna, 'span_freq')())
 
-span = span // 1 #decrease span
+#span = span // 1 #decrease span
 
 getattr(slider, 'set_open')()
-getattr(vna, 'set_power')(3)
+#getattr(vna, 'set_power')(3)
 getattr(vna, 'set_bandwidth')(100)
-getattr(vna, 'set_num_points')(101)
+getattr(vna, 'set_num_points')(201)
 
 time.sleep(3)
 
 max_freq = getattr(vna, 'linmag_peak')()[0]
 max_freq = float(max_freq)
 
-peak_span = getattr(vna, 'linmag_span')()
+#peak_span = getattr(vna, 'linmag_span')()
 
-getattr(vna, 'set_span_freq')(peak_span * 10) #set span
+#getattr(vna, 'set_span_freq')(peak_span * 10) #set span
 getattr(vna, 'set_cent_freq')(max_freq) #set central freq
-getattr(vna, 'set_num_points')(101)
+getattr(vna, 'set_num_points')(61)
 
 trashold = 0.25 #difference between final value and max value
 fine_trashold = 0.10 #to acoount for noize
@@ -77,9 +78,9 @@ n_probe_y = 3
 n_steps_z = 20  
 n_probe_z = 3
 
-sleep_time = 2
+sleep_time = 1
 
-def probe_move(n_probe: int = 5, axis: str = 'x'):
+def probe_move(n_probe: int = 5, axis: int = 1):
     """
     Make "n_probe" steps along "axis" to determine the sign of a gradient
     Parameters
@@ -94,7 +95,7 @@ def probe_move(n_probe: int = 5, axis: str = 'x'):
         False if grad_v < 0
     """
     init_v = get_V()
-    getattr(asc500, f'set_step_up_{axis}')(n_probe)
+    getattr(piezo, f'set_step_up_{axis}')(n_probe)
     time.sleep(sleep_time)
     grad_v = get_V() - init_v
     if grad_v >= 0:
@@ -102,7 +103,7 @@ def probe_move(n_probe: int = 5, axis: str = 'x'):
     else:
         return False
     
-def move(n_steps: int = 50, n_probe: int = 5, axis: str = 'x'):
+def move(n_steps: int = 50, n_probe: int = 5, axis: int = 1):
     """
     Parameters
     ----------
@@ -138,7 +139,7 @@ def move(n_steps: int = 50, n_probe: int = 5, axis: str = 'x'):
 
     for i in range(n_steps):
         if consecutive_counter < n_probe: 
-            getattr(asc500, f'set_step_{direction}_{axis}')(1) #make 1 step
+            getattr(piezo, f'set_step_{direction}_{axis}')(1) #make 1 step
             time.sleep(sleep_time) #wait 0.05 sec
             cur_v = get_V() #read V
 
@@ -153,13 +154,13 @@ def move(n_steps: int = 50, n_probe: int = 5, axis: str = 'x'):
                     
         else: #if peak is found and overshooted, go n_probe steps in the opposite direction
             direction = flip(direction)
-            getattr(asc500, f'set_step_{direction}_{axis}')(n_probe)
+            getattr(piezo, f'set_step_{direction}_{axis}')(n_probe)
             break
 
-def move2(n_steps: int, axis: str):
+def movez(n_steps: int, axis: int = 1):
     data = numpy.zeros((2, n_steps * 2))
     for i in range(n_steps):
-        getattr(asc500, f'set_step_up_{axis}')(1) #goes up
+        getattr(piezo, f'set_step_up_{axis}')(3) #goes up
         time.sleep(sleep_time) #wait
     for i in range(n_steps*2):
         data[0, i] = i
@@ -167,18 +168,42 @@ def move2(n_steps: int, axis: str):
         #time.sleep(1.1)
         #data[1, i] = get_V() #read V noise
         #getattr(slider, 'set_open')()
-        time.sleep(1.1)
+        time.sleep(0.7)
         data[1, i] = get_V()# - data[1, i] #read V signal
-        getattr(asc500, f'set_step_down_{axis}')(1) #goes down
+        getattr(piezo, f'set_step_down_{axis}')(2) #goes down
         time.sleep(sleep_time) #wait
     result = data[0, np.argmax(data[1, :])]
     result = int(result)
     print(f'Index of max {axis}: {result}')
     #for i in range(n_steps):
     for i in range((n_steps * 2) - 1 - result):
-        getattr(asc500, f'set_step_up_{axis}')(1) #goes up
+        getattr(piezo, f'set_step_up_{axis}')(3) #goes up
         time.sleep(sleep_time) #wait 0.05 sec    
 
+def move2(n_steps: int, axis: int = 1):
+    data = numpy.zeros((2, n_steps * 2))
+    for i in range(n_steps):
+        getattr(piezo, f'set_step_up_{axis}')(2) #goes up
+        time.sleep(sleep_time) #wait
+    for i in range(n_steps*2):
+        data[0, i] = i
+        #getattr(slider, 'set_close')()
+        #time.sleep(1.1)
+        #data[1, i] = get_V() #read V noise
+        #getattr(slider, 'set_open')()
+        time.sleep(0.7)
+        data[1, i] = get_V()# - data[1, i] #read V signal
+        getattr(piezo, f'set_step_down_{axis}')(2) #goes down
+        time.sleep(sleep_time) #wait
+    result = data[0, np.argmax(data[1, :])]
+    result = int(result)
+    print(f'Index of max {axis}: {result}')
+    #for i in range(n_steps):
+    for i in range((n_steps * 2) - 1 - result):
+        getattr(piezo, f'set_step_up_{axis}')(2) #goes up
+        time.sleep(sleep_time) #wait 0.05 sec   
+
+'''
 def moveZ(n_steps: int, step: float):
     data = numpy.zeros((2, n_steps * 2))
     for i in range(n_steps):
@@ -201,6 +226,7 @@ def moveZ(n_steps: int, step: float):
     for i in range((n_steps * 2) - 1 - result):
         asc500.set_scanner_down_z(step) #goes up
         time.sleep(sleep_time) #wait 0.05 sec   
+'''
         
 #moveZ(1, 'z', 'down') #down for degrease T
 
@@ -215,29 +241,25 @@ def moveZ(n_steps: int, step: float):
 #else:
 #    asc500.set_step_down_z()
 
-#unground positioners
-for i in ['x', 'y', 'z']:
-    getattr(asc500, f'set_gnd_{i}')(1)
-    time.sleep(0.1)
-    
-#asc500.set_outp_active(True)
+#step_z = 50e-9
 
-step_z = 50e-9
-T = attodry.Temp()
-asc500.set_Temp(T)
-moveZ(5, step_z)
-move2(5, 'y')#3
-move2(5, 'x')#3
+num_steps1 = 3
+num_steps2 = 1
 
-moveZ(2, step_z)
-move2(2, 'y')#2
-move2(2, 'x')#2
+move2(num_steps1, 1) #X
+move2(num_steps1, 2) #Y
+
+movez(num_steps1, 3) #Z
+
+#movez(num_steps2, 3)
+#move2(num_steps2, 2)
+#move2(num_steps2, 1)
 
 #time.sleep(20)
 
-asc500.set_volt_x(35)
-asc500.set_volt_y(35)
-asc500.set_volt_z(40)
+#piezo.set_volt_1(35)
+#piezo.set_volt_2(35)
+#piezo.set_volt_3(40) 
 
 # for i in range(iterations):
 #     move2(3, 'y')
@@ -255,12 +277,19 @@ while n_steps_x > n_probe_x + 2 and n_steps_y > n_probe_y + 2 and n_steps_z > n_
 ''' 
 
 
-getattr(vna, 'set_power')(3)
+#getattr(vna, 'set_power')(3)
+
+max_freq = getattr(vna, 'linmag_peak')()[0]
+max_freq = float(max_freq)
+
+getattr(vna, 'set_cent_freq')(max_freq) #set central freq
+
+
 getattr(vna, 'set_bandwidth')(100)
 getattr(vna, 'set_num_points')(501)
-getattr(vna, 'set_span_freq')(span * 1)
+#getattr(vna, 'set_span_freq')(span * 1)
 
-#time.sleep(5.5)
+time.sleep(5.5)
 
 '''getattr(slider, 'set_close')()
 
@@ -301,12 +330,9 @@ dataframe.append('Intermediate')
 getattr(slider, 'set_open')()
 #time.sleep(5.5)
 
-#ground positioners
-for i in ['x', 'y', 'z']:
-    getattr(asc500, f'set_gnd_{i}')(2)
-    print(f'I grounded {i} positioner')
-    time.sleep(0.1)
-#asc500.set_outp_active(False)
+for j in range(3): #grounding
+    getattr(piezo, f'set_gnd_{j+1}')(True)   
+    getattr(piezo, f'set_outp_active_{j+1}')(False)
 
     
     
