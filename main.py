@@ -9343,7 +9343,7 @@ class Sweeper_write(threading.Thread):
                     self.__dict__[f'paused_{axis}'] = True
                     if hasattr(device_to_sweep, 'pause'):
                         device_to_sweep.pause()
-                time.sleep(0.1)
+                time.sleep(0.01)
                 step(axis, value)
             
             if value == 'None':
@@ -9374,12 +9374,12 @@ class Sweeper_write(threading.Thread):
                         for ind, step in enumerate(steps1):
                             getattr(device1, f'set_{parameter1}')(value = step)
                             getattr(device2, f'set_{parameter2}')(value = steps2[ind])
-                            time.sleep(0.1)
+                            time.sleep(0.01)
                     else:
                         getattr(device2, f'set_{parameter2}')(value = 0)
                         for step in steps1:
                             getattr(device1, f'set_{parameter1}')(value = step)
-                            time.sleep(0.1)
+                            time.sleep(0.01)
                     
                 elif len(manual_sweep_flag) == 3:
                     device1 = globals()['device_to_sweep1']
@@ -9408,13 +9408,13 @@ class Sweeper_write(threading.Thread):
                             getattr(device1, f'set_{parameter1}')(value = step)
                             getattr(device2, f'set_{parameter2}')(value = steps2[ind])
                             getattr(device3, f'set_{parameter3}')(value = steps3[ind])
-                            time.sleep(0.1)
+                            time.sleep(0.01)
                     else:
                         getattr(device3, f'set_{parameter3}')(value = 0)
                         for ind, step in enumerate(steps1):
                             getattr(device1, f'set_{parameter1}')(value = step)
                             getattr(device2, f'set_{parameter2}')(value = steps2[ind])
-                            time.sleep(0.1)
+                            time.sleep(0.01)
                 
             global zero_time
             global dataframe
@@ -9445,12 +9445,12 @@ class Sweeper_write(threading.Thread):
                     value_slave = getattr(self, f'value{len(manual_sweep_flags)}')
                     getattr(device_to_sweep_slave, 'set_' + str(parameter_to_sweep_slave))(value=value_slave)
                     delay_factor = globals()[f'delay_factor{len(manual_sweep_flags)}']
-                    time.sleep(delay_factor)
+                    #time.sleep(delay_factor)
                     setattr(self, f'value{len(manual_sweep_flags)}', getattr(self, f'value{len(manual_sweep_flags)}') + getattr(self, f'step{len(manual_sweep_flags)}'))
                     #master
                     value_master = getattr(self, f'value{len(manual_sweep_flags) - 1}')
                     getattr(device_to_sweep_master, 'set_' + str(parameter_to_sweep_master))(value=value_master)
-                    delay_factor = globals()[f'delay_factor{len(manual_sweep_flags) - 1}']
+                    delay_factor += globals()[f'delay_factor{len(manual_sweep_flags) - 1}']
                     time.sleep(delay_factor)
                     func = condition_2_func(self.conds, getattr(self, f'value{len(manual_sweep_flags)}'))
                     setattr(self, f'value{len(manual_sweep_flags) - 1}', optimize.newton(func, x0 = getattr(self, f'value{len(manual_sweep_flags) - 1}')))
@@ -9477,7 +9477,7 @@ class Sweeper_write(threading.Thread):
                         device_to_sweep_master.pause()
                     if hasattr(device_to_sweep_slave, 'pause'):
                         device_to_sweep_slave.pause()
-                time.sleep(0.1)
+                time.sleep(0.01)
                 double_step()
         
         def double_step_yx():
@@ -9549,12 +9549,12 @@ class Sweeper_write(threading.Thread):
                     value_slave = self.value2
                     getattr(device_to_sweep_slave, 'set_' + str(parameter_to_sweep_slave))(value=value_slave)
                     delay_factor = globals()['delay_factor2']
-                    time.sleep(delay_factor)
+                    #time.sleep(delay_factor)
                     self.value2 += self.step2
                     #master
                     value_master = self.value1
                     getattr(device_to_sweep_master, 'set_' + str(parameter_to_sweep_master))(value=value_master)
-                    delay_factor = globals()['delay_factor1']
+                    delay_factor += globals()['delay_factor1']
                     time.sleep(delay_factor)
                     func = condition_2_func(self.conds, self.value2)
                     self.value1 = optimize.newton(func, x0 = self.value1)
@@ -9759,7 +9759,6 @@ class Sweeper_write(threading.Thread):
             
             if len(manual_sweep_flags) == 2:
                 globals()['dataframe'] = [np.round(i, 2) for i in [time.perf_counter() - zero_time]]
-                self.mapper2D.append_slave(value = np.nan)
             else:
                 globals()['dataframe'] = [*globals()['dataframe_after']]
                 if self.sweepable3 == True:
@@ -10099,11 +10098,11 @@ class Sweeper_write(threading.Thread):
                         if i != walks:
                             self.mapper2D.walks = 1
                             self.mapper2D.slave_done_walking()
-                            self.mapper2D.append_master(value = self.value1)
                             self.mapper2D.concatenate_all()
                             self.mapper2D.clear_slave()
                             self.mapper2D.clear_sub_slaves()
                             self.mapper2D.clear_parameters()
+                            self.mapper2D.append_master(value = self.value1)
                             step(axis = 1)
                             globals()['Sweeper_object'].cur_walk1 += 1
                             
