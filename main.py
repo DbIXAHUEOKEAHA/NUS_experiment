@@ -352,6 +352,18 @@ for address in list(address_dict.keys()):
     if address.startswith('cDAQ'):
         list_of_devices.append(address)
         types_of_devices.append('Not a class')
+    if address.endswith('.LI'):
+        list_of_devices.append(address)
+        list_of_devices.append(f'{address[:-3]}.DC')
+        types_of_devices.append('M81_lockin')
+        types_of_devices.append('M81_DC')
+    elif address.endswith('.DC'):
+        list_of_devices.append(address)
+        list_of_devices.append(f'{address[:-3]}.LI')
+        types_of_devices.append('M81_DC')
+        types_of_devices.append('M81_lockin')
+        
+        
         
 for ind_, type_ in enumerate(types_of_devices):
     if type_ == 'Not a class':
@@ -420,8 +432,6 @@ def plot_animation(i, n, filename):
         
     if not 'setget' in filename:
         filename = globals()['filename_sweep']
-        
-    
         
     try:
         data = pd.read_csv(filename, sep = deli)
