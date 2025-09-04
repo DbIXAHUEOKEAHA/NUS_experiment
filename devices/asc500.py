@@ -272,7 +272,7 @@ class asc500():
         
         axis = 1
         self.device.coarse.stepCoarseDown(axis, value)
-        
+      
     def scanner_z(self):
         """
         Returns the position of the zcontrol
@@ -280,7 +280,6 @@ class asc500():
         
         return self.device.zcontrol.getPositionZ()
     
-    '''
     def set_scanner_z(self, value):
         """
         Set the position of the zcontrol
@@ -293,7 +292,7 @@ class asc500():
             value = self.scanner_z()
         
         self.device.zcontrol.setPositionZ(value)
-    '''
+    
         
     def scanner_x(self):
         """
@@ -308,6 +307,15 @@ class asc500():
         """
         
         return self.device.scanner.getPositionsXYZRel()[1]
+    
+    '''
+    def scanner_z(self):
+        """
+        Returns the position of the x-scanner
+        """
+        
+        return self.device.scanner.getPositionsXYZRel()[2]
+    '''
         
     def set_scanner_up_x(self, value: float):
         """
@@ -510,7 +518,8 @@ class asc500():
             value = y
         
         self.device.scanner.setPositionsXYZRel([x, value, z])
-        
+       
+    '''
     def set_scanner_z(self, value: float, speed = None):
         """
         
@@ -530,6 +539,7 @@ class asc500():
             value = z
         
         self.device.scanner.setPositionsXYZRel([x, y, value])
+    '''
         
     def set_scanner_XY_counter(self, value = int, speed = None):
         
@@ -742,12 +752,16 @@ def main():
     #device.set_scanner_x(1e-6)
     #device.set_scanner_y(1e-6)
     #time.sleep(2)
-    #x = device.scanner_x()
-    #y = device.scanner_y()
+    
+    device.set_scanner_z(200e-9)
+    
+    x = device.scanner_x()
+    y = device.scanner_y()
+    z = device.scanner_z()
     
     #device.set_scanner_XY_counter(0)
     
-    #print(f'X = {x}, Y = {y}')
+    print(f'X = {x}, Y = {y}, Z = {z}')
     
     #device.set_gnd_y(1)
     device.close()
