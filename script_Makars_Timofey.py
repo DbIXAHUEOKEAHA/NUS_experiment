@@ -25,25 +25,31 @@ else:
     slider = list_of_devices[list_of_devices_addresses.index('COM6')]
     
 '''
-piezo = list_of_devices[list_of_devices_addresses.index('192.168.1.4')]
+scanner = list_of_devices[list_of_devices_addresses.index('COM3')]
 #keithley = list_of_devices[list_of_devices_addresses.index('GPIB0::6::INSTR')]
 vna = list_of_devices[list_of_devices_addresses.index('169.254.82.39:5025')]
-slider = list_of_devices[list_of_devices_addresses.index('COM4')]
-attodry = list_of_devices[list_of_devices_addresses.index('192.168.1.4')]
+slider = list_of_devices[list_of_devices_addresses.index('COM6')]
+attodry = list_of_devices[list_of_devices_addresses.index('COM4')]
     
+Temperature = attodry.Temp()
+scanner.set_Temp(Temperature)
+
 def get_V():
+    averaging = 5
     #V = getattr(keithley, 'Volt_DC')() #Using DC
-    V = getattr(vna, 'linmag_peak')()[1] #Using VNA
-    return V
+    V = 0 
+    for i in range(averaging):
+        V += getattr(vna, 'linmag_peak')()[1] #Using VNA
+    return V/averaging
 
 if 'count_step_T' in list(globals().keys()):
-    globals()['count_step_T'] += 1
+    globals()['count_step_T'] -= 1
 else:
-    globals()['count_step_T'] = 0
+    globals()['count_step_T'] = 46
 
-for j in range(3): #ungrounding
-    getattr(piezo, f'set_gnd_{j+1}')(False)  
-    getattr(piezo, f'set_outp_active_{j+1}')(True)
+#for axis in ['x', 'y', 'z']: #ungrounding
+#    getattr(scanner, f'set_gnd_{axis}')(False)  
+#    getattr(scanner, f'set_outp_active_{axis}')(True)
    
 #span = float(getattr(vna, 'span_freq')())
 
@@ -51,32 +57,44 @@ for j in range(3): #ungrounding
 
 getattr(slider, 'set_open')()
 #getattr(vna, 'set_power')(3)
-getattr(vna, 'set_bandwidth')(100)
+getattr(vna, 'set_bandwidth')(50)
 getattr(vna, 'set_num_points')(201)
 
-time.sleep(3)
+time.sleep(6)
 
 max_freq = getattr(vna, 'linmag_peak')()[0]
 max_freq = float(max_freq)
 
 #peak_span = getattr(vna, 'linmag_span')()
 
+print(globals()['count_step_T'])
+
+#if  globals()['count_step_T'] == 15 :
+#    print('5 K UNTIL 3 DBM')
+    
+#if  -16 < globals()['count_step_T'] < 20 : #-3 dbm at < 20 K
+#    getattr(vna, 'set_power')(-3)
+#else:
+#    getattr(vna, 'set_power')(3) 
+
 #getattr(vna, 'set_span_freq')(peak_span * 10) #set span
-getattr(vna, 'set_cent_freq')(max_freq) #set central freq
+#if  -36 < globals()['count_step_T'] < 40: #No movement > 40 K
+#    print('I move center frequency')
+#    getattr(vna, 'set_cent_freq')(max_freq) #set central freq
+#    print('Bandwidth 200')
+#    getattr(vna, 'set_bandwidth')(200)
+#else:
+print('Bandwidth 200')
+getattr(vna, 'set_bandwidth')(200)
 getattr(vna, 'set_num_points')(61)
+
+if  globals()['count_step_T'] < -40:
+    globals()['count_step_T'] = 46
+
 
 trashold = 0.25 #difference between final value and max value
 fine_trashold = 0.10 #to acoount for noize
 iterations = 2
-
-n_steps_x = 20
-n_probe_x = 3
-
-n_steps_y = 20
-n_probe_y = 3
-
-n_steps_z = 20  
-n_probe_z = 3
 
 sleep_time = 1
 
@@ -95,7 +113,7 @@ def probe_move(n_probe: int = 5, axis: int = 1):
         False if grad_v < 0
     """
     init_v = get_V()
-    getattr(piezo, f'set_step_up_{axis}')(n_probe)
+    getattr(scanner, f'set_step_up_{axis}')(n_probe)
     time.sleep(sleep_time)
     grad_v = get_V() - init_v
     if grad_v >= 0:
@@ -139,7 +157,7 @@ def move(n_steps: int = 50, n_probe: int = 5, axis: int = 1):
 
     for i in range(n_steps):
         if consecutive_counter < n_probe: 
-            getattr(piezo, f'set_step_{direction}_{axis}')(1) #make 1 step
+            getattr(scanner, f'set_step_{direction}_{axis}')(1) #make 1 step
             time.sleep(sleep_time) #wait 0.05 sec
             cur_v = get_V() #read V
 
@@ -154,13 +172,13 @@ def move(n_steps: int = 50, n_probe: int = 5, axis: int = 1):
                     
         else: #if peak is found and overshooted, go n_probe steps in the opposite direction
             direction = flip(direction)
-            getattr(piezo, f'set_step_{direction}_{axis}')(n_probe)
+            getattr(scanner, f'set_step_{direction}_{axis}')(n_probe)
             break
 
 def movez(n_steps: int, axis: int = 1):
     data = numpy.zeros((2, n_steps * 2))
     for i in range(n_steps):
-        getattr(piezo, f'set_step_up_{axis}')(3) #goes up
+        getattr(scanner, f'set_step_up_{axis}')(3) #goes up
         time.sleep(sleep_time) #wait
     for i in range(n_steps*2):
         data[0, i] = i
@@ -170,38 +188,55 @@ def movez(n_steps: int, axis: int = 1):
         #getattr(slider, 'set_open')()
         time.sleep(0.7)
         data[1, i] = get_V()# - data[1, i] #read V signal
-        getattr(piezo, f'set_step_down_{axis}')(2) #goes down
+        getattr(scanner, f'set_step_down_{axis}')(2) #goes down
         time.sleep(sleep_time) #wait
     result = data[0, np.argmax(data[1, :])]
     result = int(result)
     print(f'Index of max {axis}: {result}')
     #for i in range(n_steps):
     for i in range((n_steps * 2) - 1 - result):
-        getattr(piezo, f'set_step_up_{axis}')(3) #goes up
+        getattr(scanner, f'set_step_up_{axis}')(3) #goes up
         time.sleep(sleep_time) #wait 0.05 sec    
 
-def move2(n_steps: int, axis: int = 1):
+def move2(n_steps: int, axis: str = 'h'):
+    if axis == 'x' or axis == 'X':
+        step = 100e-9
+    elif axis == 'y' or axis == 'Y':
+        step = 100e-9
+    else:
+        step = 200e-9
     data = numpy.zeros((2, n_steps * 2))
+    current_position =  getattr(scanner, f'scanner_{axis}')()
     for i in range(n_steps):
-        getattr(piezo, f'set_step_up_{axis}')(2) #goes up
-        time.sleep(sleep_time) #wait
+        value = current_position + step
+        getattr(scanner, f'set_scanner_{axis}')(value) #goes up
+        current_position = value
+        time.sleep(0.05) #wait 0.05 s
     for i in range(n_steps*2):
         data[0, i] = i
         #getattr(slider, 'set_close')()
         #time.sleep(1.1)
         #data[1, i] = get_V() #read V noise
         #getattr(slider, 'set_open')()
-        time.sleep(0.7)
+        time.sleep(0.05)
         data[1, i] = get_V()# - data[1, i] #read V signal
-        getattr(piezo, f'set_step_down_{axis}')(2) #goes down
-        time.sleep(sleep_time) #wait
+        current_position = value
+        print(f'Current {axis} position: {value}, maximum voltage: {data[1, i]}')
+        value = current_position - step
+        getattr(scanner, f'set_scanner_{axis}')(value) #goes down
+        time.sleep(0.05) #wait
     result = data[0, np.argmax(data[1, :])]
     result = int(result)
-    print(f'Index of max {axis}: {result}')
+    print(f'Index of max {axis}: {result}, position of max: {value + step * (n_steps * 2 - result)}')
+    for i in range(10):
+        getattr(scanner, f'set_scanner_{axis}')(value + step * (n_steps * 2 - result))
+        time.sleep(0.1)
     #for i in range(n_steps):
-    for i in range((n_steps * 2) - 1 - result):
-        getattr(piezo, f'set_step_up_{axis}')(2) #goes up
-        time.sleep(sleep_time) #wait 0.05 sec   
+    #for i in range((n_steps * 2) - result - 1):
+        #value = current_position + step
+       # getattr(scanner, f'set_scanner_{axis}')(value) #goes up
+        #current_position = value
+       # time.sleep(0.05) #wait 0.05 sec   
 
 '''
 def moveZ(n_steps: int, step: float):
@@ -243,13 +278,12 @@ def moveZ(n_steps: int, step: float):
 
 #step_z = 50e-9
 
-num_steps1 = 3
+num_steps1 = 4
 num_steps2 = 1
 
-move2(num_steps1, 1) #X
-move2(num_steps1, 2) #Y
-
-movez(num_steps1, 3) #Z
+move2(num_steps1, 'x') # Scanner X
+move2(num_steps1, 'y') # Scanner Y
+move2(num_steps1, 'z') # Scanner Z
 
 #movez(num_steps2, 3)
 #move2(num_steps2, 2)
@@ -257,9 +291,9 @@ movez(num_steps1, 3) #Z
 
 #time.sleep(20)
 
-#piezo.set_volt_1(35)
-#piezo.set_volt_2(35)
-#piezo.set_volt_3(40) 
+#scanner.set_volt_1(35)
+#scanner.set_volt_2(35)
+#scanner.set_volt_3(40) 
 
 # for i in range(iterations):
 #     move2(3, 'y')
@@ -279,17 +313,17 @@ while n_steps_x > n_probe_x + 2 and n_steps_y > n_probe_y + 2 and n_steps_z > n_
 
 #getattr(vna, 'set_power')(3)
 
-max_freq = getattr(vna, 'linmag_peak')()[0]
-max_freq = float(max_freq)
+#max_freq = getattr(vna, 'linmag_peak')()[0]
+#max_freq = float(max_freq)
 
-getattr(vna, 'set_cent_freq')(max_freq) #set central freq
+#getattr(vna, 'set_cent_freq')(max_freq) #set central freq
 
 
-getattr(vna, 'set_bandwidth')(100)
+getattr(vna, 'set_bandwidth')(50)
 getattr(vna, 'set_num_points')(501)
 #getattr(vna, 'set_span_freq')(span * 1)
 
-time.sleep(5.5)
+#time.sleep(5.5)
 
 '''getattr(slider, 'set_close')()
 
@@ -301,6 +335,12 @@ getattr(slider, 'set_open')()
 '''
 
 getattr(slider, 'set_close')()
+
+if len(manual_sweep_flags) == 2:
+    globals()['dataframe'].append("{:.3e}".format(getattr(self, 'value2')))
+elif len(manual_sweep_flags) == 3:
+    globals()['dataframe'].append("{:.3e}".format(getattr(self, 'value3')))
+
 for parameter in self.parameters_to_read:
     index_dot = len(parameter) - parameter[::-1].find('.') - 1
     adress = parameter[:index_dot]
@@ -311,6 +351,11 @@ for parameter in self.parameters_to_read:
                                   option)()
         if str(parameter_value) == '':
             parameter_value = np.nan
+            
+        if len(manual_sweep_flags) == 2 or (len(manual_sweep_flags) == 3 and self.condition_status != 'unknown'):
+            self.mapper2D.append_parameter(str(parameter), parameter_value)
+        if len(manual_sweep_flags) == 3:
+            self.mapper3D.append_parameter(str(parameter), parameter_value)
         dataframe.append(parameter_value)
     except:
         dataframe.append(None)
@@ -325,14 +370,22 @@ with open(filename_sweep, 'a', newline='') as f_object:
     finally:
         f_object.close()
 
-dataframe = [np.round(i, 2) for i in [time.perf_counter() - zero_time]]
-dataframe.append('Intermediate')
+if globals()['axis'] == len(manual_sweep_flags):
+    globals()['dataframe'] = ['Intermideate']
+    globals()['dataframe'].append("{:.3e}".format(getattr(self, 'value1')))
+    if len(manual_sweep_flags) == 2:
+        globals()['dataframe'].append("{:.3e}".format(getattr(self, 'value2')))
+    elif len(manual_sweep_flags) == 3:
+        globals()['dataframe'].append("{:.3e}".format(getattr(self, 'value3')))
+else:
+    globals()['dataframe'] = ['Intermideate']
+        
 getattr(slider, 'set_open')()
-#time.sleep(5.5)
+time.sleep(0.5)
 
-for j in range(3): #grounding
-    getattr(piezo, f'set_gnd_{j+1}')(True)   
-    getattr(piezo, f'set_outp_active_{j+1}')(False)
+#for axis in ['x', 'y', 'z']: #grounding
+#    getattr(scanner, f'set_gnd_{axis}')(True)   
+#    getattr(scanner, f'set_outp_active_{axis}')(False)
 
     
     
