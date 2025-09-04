@@ -884,9 +884,10 @@ class Vna(GenericInstrument):
         if self.complex_peak[0] is None:
             self.trac()
         answer = self.complex_peak[0]
+        ydata = list(map(float, answer))
         self.complex_peak[0] = None
         
-        return self.fit(f, answer)[0]
+        return self.fit(f, ydata)[0]
     
     def im_peak_freq(self):
         f = self.freqs().split(',')
@@ -895,9 +896,10 @@ class Vna(GenericInstrument):
         if self.complex_peak[1] is None:
             self.trac()
         answer = self.complex_peak[1]
+        ydata = list(map(float, answer))
         self.complex_peak[1] = None
         
-        return self.fit(f, answer)[0]
+        return self.fit(f, ydata)[0]
     
     def real_dip_freq(self):
         f = self.freqs().split(',')
@@ -906,9 +908,10 @@ class Vna(GenericInstrument):
         if self.complex_dip[0]is None:
             self.trac()
         answer = self.complex_dip[0]
+        ydata = list(map(float, answer))
         self.complex_dip[0] = None
         
-        return self.fit(f, answer)[1]
+        return self.fit(f, ydata)[1]
     
     def im_dip_freq(self):
         f = self.freqs().split(',')
@@ -917,42 +920,53 @@ class Vna(GenericInstrument):
         if self.complex_dip[1] is None:
             self.trac()
         answer = self.complex_dip[1]
+        ydata = list(map(float, answer))
         self.complex_dip[1] = None
         
-        return self.fit(f, answer)[1]
+        return self.fit(f, ydata)[1]
     
     def linmag_peak(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        ans = self.fit(f, self.trace_linmag().split(','))
+        ydata = self.trace_linmag().split(',')
+        ydata = list(map(float, ydata))
+        ans = self.fit(f, ydata)
         return (ans[0], ans[2])
     
     def linmag_span(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        ans = self.calculate_span_peak(f, self.trace_linmag().split(','))
+        ydata = self.trace_linmag().split(',')
+        ydata = list(map(float, ydata))
+        ans = self.calculate_span_peak(f, ydata)
         return ans
     
     def linmag_dip(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        ans = self.fit(f, self.trace_linmag().split(','))
+        ydata = self.trace_linmag().split(',')
+        ydata = list(map(float, ydata))
+        ans = self.fit(f, ydata)
         return (ans[1], ans[3])
     
     def linmag_peak_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_linmag().split(','))[0]
+        ydata = self.trace_linmag().split(',')
+        ydata = list(map(float, ydata))
+        return self.fit(f, ydata)[0]
     
     def linmag_dip_freq(self):
         f = self.freqs().split(',')
         f = np.array([float(i) for i in f])
-        return self.fit(f, self.trace_linmag().split(','))[0]
+        ydata = self.trace_linmag().split(',')
+        ydata = list(map(float, ydata))
+        return self.fit(f, ydata)[0]
      
 def main():
-    vna = Vna('169.254.169.168:5025')
+    vna = Vna('169.254.82.39:5025')
     try:
-        print(vna.im_peak_freq())
+        print(vna.linmag_peak())
     except Exception as ex:
         print(ex)
     finally:
