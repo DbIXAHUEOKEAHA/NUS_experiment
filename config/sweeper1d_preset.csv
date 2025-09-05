@@ -1,2 +1,0 @@
-combo_to_sweep1,sweep_options1,from1,to1,count_option1,ratio1,back_ratio1,delay_factor1,back_delay_factor1,status_back_and_forth1,status_manual1,manual_filename1,condition,filename_sweep,interpolated,uniform
-7,4,-5,-6,step,0.0,,10,,0,0,,,D:\Program_sweep\App\40. Shilov_Wide_BLG_antenna\241124\data_files\Wide_BLG.csv,1,1

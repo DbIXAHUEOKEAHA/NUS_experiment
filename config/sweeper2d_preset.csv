@@ -1,2 +1,0 @@
-combo_to_sweep1,sweep_options1,from1,to1,count_option1,ratio1,back_ratio1,delay_factor1,back_delay_factor1,status_back_and_forth1,status_manual1,manual_filename1,combo_to_sweep2,sweep_options2,from2,to2,count_option2,ratio2,back_ratio2,delay_factor2,back_delay_factor2,status_back_and_forth2,status_manual2,manual_filename2,status_snakemode2,condition,filename_sweep,interpolated,uniform
-9,1,13,2,step,1,,1,,0,0,,9,2,60000,0,ratio,110,110,5,0.5,1,0,,0,,D:\Program_sweep\App\32. Olga TBG16\241124\data_files\TBG (second loading)_35\TBG (second loading)_11.0.csv,1,1
