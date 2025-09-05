@@ -1,18 +1,19 @@
 import nidaqmx
 import numpy as np
+import matplotlib.pyplot as plt
 
 class NI_DAQ():
     
     def __init__(self, adress):
         self.name = adress
         self.task = nidaqmx.Task()
-        self.rate = 51200
-        self.n_sample = 51200
+        self.rate = 26100
+        self.n_sample = int(self.rate / 1)
         for i in range(4):
             self.task.ai_channels.add_ai_voltage_chan(f'{self.name}/ai{i}')
             self.__dict__[f'ch{i}_mean'] = lambda i=i: self.ch_mean(i)
             self.__dict__[f'ch{i}_array'] = lambda i=i: self.ch_array(i)
-        self.task.timing.cfg_samp_clk_timing(self.rate)
+        self.task.timing.cfg_samp_clk_timing(self.rate, samps_per_chan=self.n_sample)
         
         self.set_options = ['rate', 'n_sample']
         self.get_options = ['ch0_mean', 'ch1_mean', 'ch2_mean', 'ch3_mean', 
@@ -49,6 +50,11 @@ class NI_DAQ():
     def ch_mean(self, i):
         if self.measured_mean[i] == None:
             self.measured_mean = self.task.read(self.n_sample)
+            self.close()
+            self.task = nidaqmx.Task()
+            for j in range(4):
+                self.task.ai_channels.add_ai_voltage_chan(f'{self.name}/ai{j}')
+            self.task.timing.cfg_samp_clk_timing(self.rate, samps_per_chan=self.n_sample)
         answer = self.measured_mean[i]
         self.measured_mean[i] = None
         answer = np.array(answer).mean()
@@ -57,12 +63,17 @@ class NI_DAQ():
     def ch_array(self, i):
         if self.measured_array[i] == None:
             self.measured_array = self.task.read(self.n_sample)
+            self.close()
+            self.task = nidaqmx.Task()
+            for j in range(4):
+                self.task.ai_channels.add_ai_voltage_chan(f'{self.name}/ai{j}')
+            self.task.timing.cfg_samp_clk_timing(self.rate, samps_per_chan=self.n_sample)
         answer = self.measured_array[i]
-        self.measured_array[i] = None
         answer = np.array(answer, dtype = str)
+        self.measured_array[i] = None
         ans = ''
         for a in answer:
-            ans += a
+            ans += str(a)
             ans += ','
         try:
             answer = answer.replace(' ', '')
@@ -81,17 +92,13 @@ class NI_DAQ():
 def main():
     name = 'cDAQ1Mod1'
     device = NI_DAQ(name)
-    try:
-        device.set_rate(1000)
-        device.set_n_sample(1001)
-        print(device.time())
-        answer = device.ch1_array()
-        print(answer)
-    except Exception as e:
-        print(e)
-        device.close()
-    finally:
-        device.close()
+    
+    ch0 = [float(i) for i in device.ch0_array().split(',')]
+    ch1 = device.ch1_array()
+    ch2 = [float(i) for i in device.ch2_array().split(',')]
+    
+    fig, ax = plt.subplots()
+    ax.plot(ch2, ch0)
 
 if __name__ == '__main__':
     main()
