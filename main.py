@@ -136,7 +136,7 @@ ratio_sweep3 = 1
 back_ratio_sweep3 = 1
 delay_factor3 = 1
 back_delay_factor3 = 1
-setget_delay_factor = 1
+setget_delay_factor = 0.001
 stepper_flag = False
 #fastmode_slave_flag = False
 #fastmode_master_flag = False
@@ -355,15 +355,39 @@ for address in list(address_dict.keys()):
     if address.endswith('.LI'):
         list_of_devices.append(address)
         list_of_devices.append(f'{address[:-3]}.DC')
+        list_of_devices.append(f'{address[:-3]}.TR')
+        list_of_devices.append(f'{address[:-3]}.SQ')
         types_of_devices.append('M81_lockin')
         types_of_devices.append('M81_DC')
+        types_of_devices.append('M81_TRIANGLE')
+        types_of_devices.append('M81_SQUARE')
     elif address.endswith('.DC'):
         list_of_devices.append(address)
         list_of_devices.append(f'{address[:-3]}.LI')
+        list_of_devices.append(f'{address[:-3]}.TR')
+        list_of_devices.append(f'{address[:-3]}.SQ')
         types_of_devices.append('M81_DC')
         types_of_devices.append('M81_lockin')
-        
-        
+        types_of_devices.append('M81_TRIANGLE')
+        types_of_devices.append('M81_SQUARE')
+    elif address.endswith('.TR'):
+        list_of_devices.append(address)
+        list_of_devices.append(f'{address[:-3]}.LI')
+        list_of_devices.append(f'{address[:-3]}.DC')
+        list_of_devices.append(f'{address[:-3]}.SQ')
+        types_of_devices.append('M81_TRIANGLE')
+        types_of_devices.append('M81_lockin')
+        types_of_devices.append('M81_DC')
+        types_of_devices.append('M81_SQUARE')
+    elif address.endswith('.SQ'):
+        list_of_devices.append(address)
+        list_of_devices.append(f'{address[:-3]}.LI')
+        list_of_devices.append(f'{address[:-3]}.DC')
+        list_of_devices.append(f'{address[:-3]}.TR')
+        types_of_devices.append('M81_SQUARE')
+        types_of_devices.append('M81_lockin')
+        types_of_devices.append('M81_DC')
+        types_of_devices.append('M81_TRIANGLE')
         
 for ind_, type_ in enumerate(types_of_devices):
     if type_ == 'Not a class':
