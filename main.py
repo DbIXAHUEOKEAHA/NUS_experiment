@@ -860,8 +860,8 @@ class SetGet(tk.Frame):
                                  command=lambda: self.go_home(controller))
         button_home.pack()
         
-        button_set_all = tk.Button(self, text = 'Set all', command = self.set_all)
-        button_set_all.pack()
+        #button_set_all = tk.Button(self, text = 'Set all', command = self.set_all)
+        #button_set_all.pack()
         
         for i in range (1, self.num_widgets + 1):
         
