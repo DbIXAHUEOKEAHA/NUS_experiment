@@ -191,10 +191,10 @@ class M81_lockin():
         self.M81_connection.close()
         
 def main():
-    device = M81_lockin('GPIB0::10::INSTR')
-    loggable = device.loggable
-    for param in loggable:
-        print(f'{param} = {getattr(device, param)()}')
+    device = M81_lockin('GPIB0::10::INSTR.LI')
+    f = device.LI1_frequency()
+    print(f)
+    device.close()
     
 if __name__ == '__main__':
     main()
