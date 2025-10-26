@@ -388,7 +388,7 @@ for address in list(address_dict.keys()):
         types_of_devices.append('M81_lockin')
         types_of_devices.append('M81_DC')
         types_of_devices.append('M81_TRIANGLE')
-        
+
 for ind_, type_ in enumerate(types_of_devices):
     if type_ == 'Not a class':
         if list_of_devices[ind_] in list(address_dict.keys()):
